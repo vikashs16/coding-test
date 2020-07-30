@@ -1,110 +1,71 @@
 let express = require('express');
 let bodyParser= require('body-parser');
-let db = require('./db');
-let product = require('./model')
-let userInfo = require('./userModel');
-let cardInfo = require('./card');
+let database = require('./db');
+let db = require('./model')
+
 let app = express();
-
-const bcrypt = require('bcrypt');
-
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json())
 
-// API to use get product list of camera
-app.get('/product/list',async (req,res) =>{
-    try {
-        let getdata = await product.find({});
-           if(getdata){
-               res.send(getdata)
-           }else{
-               res.send({
-                   status:401,
-                   message:"data not found",
-                   response:error
-               })
-           } 
-       }catch(err){
-           console.log("data not save!", err);
-       }
-});
 
 // user register info
-app.post('/user',async (req,res) =>{
+app.post('/api/register',async (req,res) =>{
     try {
-        const salt = await bcrypt.genSalt()
-        const hash = await bcrypt.hash(req.body.password, salt)
-        const tutorial = new userInfo({
-            name: req.body.name,
-            password: hash,
-            email:req.body.email
-        });
-        tutorial.save(tutorial).then(data => {
-            res.send(data);
-        }).catch(err => {
-            res.status(500).send({
-                message:err.message || "Some error occurred while creating the Tutorial."
-            });
-        });
-    }catch(err){
-        console.log("data not save!", err);
-    }
-});
-
-
-// user login
-app.get('/user/login',async (req,res) =>{
-    try {
-        const salt = await bcrypt.genSalt()
-        const hash = await bcrypt.hash(req.body.password, salt)
-        const password = await bcrypt.compare(req.body.password, hash);
-        if(password){
-            let getUserInfo = await userInfo.find({
-                user:req.body.name
-            });
-            res.send({
-                status:200,
-                message:"user login sucessfully"
-            })
-        }else{
-            res.send({
-                status:"error",
-                message:"password is not match"
-            })
-        }   
-       }catch(err){
-           console.log("data not save!", err);
-       }
-});
-
-// add product in card
-app.post('/addIn/card',async (req,res) =>{
-    try {
-        let card = await cardInfo.findOne({userID:req.body.userID})
-        if(card){
-            let infoCard = await cardInfo.updateOne({ 
-                $addToSet: { productName: { $each: [req.body.productName] } } 
-            })
-            res.send({
-                status:"success",
-                data:infoCard
-            })
-        }else{
-            const tutorial = new cardInfo({
-                productName:req.body.productName,
-                userID:req.body.userID
-            });
-            tutorial.save(tutorial).then(data => {
+        if(!Array.isArray(req.body.teachers)){
+            let checkStudentData = await db.teacher.findOne({teachers:req.body.teachers})
+            if(checkStudentData){
+                let teacherInfo = await db.teacher.updateOne({ 
+                    $addToSet: { students: { $each: [req.body.students] } } 
+                })
                 res.send({
                     status:"success",
-                    message:"insert data successfully",
-                    data:data
+                    message:"Update Data succesfully",
+                    data:teacherInfo
+                })
+            }else{
+                const studentData = new db.teacher({
+                    teachers: req.body.teachers,
+                    students: req.body.students
                 });
-            }).catch(err => {
-                res.status(500).send({
-                    message:err.message || "Some error occurred while creating the Tutorial."
+    
+                let data = await studentData.save();
+                if(data){
+                    res.send(data);
+                }else{
+                    res.status(500).send({
+                        message:err.message || "Insert data sucessfully."
+                    });
+                }
+            }
+        }else if(!Array.isArray(req.body.student)){
+            let checkStudentData = await db.student.findOne({students:req.body.students})
+            if(checkStudentData){
+                let teacherInfo = await db.student.updateOne({ 
+                    $addToSet: { teachers: { $each: req.body.teachers } } 
+                })
+                res.send({
+                    status:"success",
+                    message:"Update Data succesfully",
+                    data:teacherInfo
+                })
+            }else{
+                const studentData = new db.student({
+                    students: req.body.students,
+                    teachers: req.body.teachers
                 });
+                let data = await studentData.save();
+                if(data){
+                    res.send(data);
+                }else{
+                    res.status(500).send({
+                        message:err.message || "Insert data sucessfully."
+                    });
+                }
+            }
+        }else{
+            res.send({
+                message:"Params value is not correct."
             });
         }
     }catch(err){
@@ -112,28 +73,61 @@ app.post('/addIn/card',async (req,res) =>{
     }
 });
 
-// get product in card
+app.get('/api/commonstudents',async (req,res) =>{
+    try {
+        let arrData= []
+        let finArr = []
+        if(Array.isArray(req.query.teachers)){
+            for(var i=0; i<=req.query.teachers.length; i++){
+                let arrTeacherData = await db.teacher.find({ 
+                     "teachers": req.query.teachers[i]
+                })
+                arrData.push(...arrTeacherData)   
+            }
+            arrData.filter((item)=>{finArr.push(...item.students)})
+            res.send({students:finArr})
+        }else{
+            let teacherData = await db.teacher.findOne({
+                teachers:req.query.teachers
+            });
+            if(teacherData){
+                res.send({students:teacherData.students });
+            }else{
+                res.send({status:404,message:"data not found!"});
+            }
+        }
+    }
+    catch(err){
+        console.log("data not save!", err);
+    }
+});
 
-app.get('/card/product', async (req,res) =>{
+app.post('/api/suspend',async (req,res) =>{
     try{
-        let cardData = await cardInfo.findOne({userID:req.body.userID})
-        if(cardData){
+        let checkStudentData = await db.suspend.findOne({students:req.body.students})
+        if(checkStudentData){
             res.send({
-                status:200,
-                message:"data list",
-                response:cardData
+                students:checkStudentData.students
             })
         }else{
-            res.send({
-                status:201,
-                message:"Product not found for this user"
-            })
+            const suspendData = new db.suspend({
+                students: req.body.students,
+                teachers: req.body.teachers
+            });
+            let data = await suspendData.save();
+            if(data){
+                res.send(data.students);
+            }else{
+                res.status(500).send({
+                    message:err.message || "Insert data sucessfully."
+                });
+            }
         }
-    }catch(err){
-        console.log("error ::++",err)
+    }
+    catch(err){
+        console.log("data not save!", err);
     }
 })
-
 
 app.listen(8080 ,()=>{
     console.log('connect to database and server has been start 8080')

@@ -1,12 +1,34 @@
 const mongoose = require('mongoose');
 
-    const NoteSchema = mongoose.Schema({
-            name: String,
-            description: String,
-            price:String,
-            make:Number,
+    const teacherSchema = mongoose.Schema({
+            teachers: String,
+            students: [String],
         }, {
         timestamps: true
     });
 
-    module.exports = mongoose.model('product', NoteSchema);
+   let teacher =  mongoose.model('Teacher', teacherSchema);
+
+    const studentSchema = mongoose.Schema({
+            students: String,
+            teachers: [String],
+        }, {
+        timestamps: true
+    });
+
+    let student =  mongoose.model('Student', studentSchema);
+
+    const suspendSchema = mongoose.Schema({
+            teachers: String,
+            students: String,
+        }, {
+        timestamps: true
+    });
+
+    let suspend =  mongoose.model('Suspend', suspendSchema);
+
+    module.exports = {
+        teacher:teacher,
+        student:student,
+        suspend:suspend
+    }
