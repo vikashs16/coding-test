@@ -27,8 +27,18 @@ const mongoose = require('mongoose');
 
     let suspend =  mongoose.model('Suspend', suspendSchema);
 
+    const notificationSchema = mongoose.Schema({
+            teacher:String,
+            notification:String
+        }, {
+        timestamps:true
+    });
+
+    let notification = mongoose.model('Notification', notificationSchema);
+
     module.exports = {
         teacher:teacher,
         student:student,
-        suspend:suspend
+        suspend:suspend,
+        notification:notification
     }

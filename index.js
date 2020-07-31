@@ -73,6 +73,7 @@ app.post('/api/register',async (req,res) =>{
     }
 });
 
+// List of student
 app.get('/api/commonstudents',async (req,res) =>{
     try {
         let arrData= []
@@ -102,6 +103,7 @@ app.get('/api/commonstudents',async (req,res) =>{
     }
 });
 
+// Student suspend
 app.post('/api/suspend',async (req,res) =>{
     try{
         let checkStudentData = await db.suspend.findOne({students:req.body.students})
@@ -126,6 +128,32 @@ app.post('/api/suspend',async (req,res) =>{
     }
     catch(err){
         console.log("data not save!", err);
+    }
+});
+
+
+app.post('/api/retrievefornotifications', async (req,res) =>{
+    try{
+        let notifdata = await db.notification.findOne({teacher:req.body.teacher});
+        if(notifdata){
+            res.send(notifdatas.notification);
+        }else{
+            const suspendData = new db.notification({
+                teacher: req.body.teacher,
+                notification:req.body.notification
+            });
+            let data = await suspendData.save();
+            if(data){
+                res.send(data);
+            }else{
+                res.status(500).send({
+                    message:err.message || "Insert data sucessfully."
+                });
+            }
+        }
+    }
+    catch(err){
+
     }
 })
 
